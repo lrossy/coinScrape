@@ -8,9 +8,13 @@
 
 var _ = require('lodash');
 var BTCE = require('btce');
+//var process = require('process');
 var pair  = 'xpm_btc';
 var elasticsearch = require('elasticsearch');
 var cronJob = require('cron').CronJob;
+
+/** CONFIG **/
+
 
 var esconfig = {
     _index : 'coinscrape',
@@ -25,15 +29,22 @@ var esconfig = {
 var apiuser ="test";
 var apisecret = "test";
 
+var numResults = 100;
+/** END CONFIG **/
+
 exports.scrape = function (req, res) {
 
     es = elasticsearch(esconfig);
 
     var btce = new BTCE(apiuser, apisecret);
 
-    var args = {'pair':pair, 'count':10};
-
+    var args = {'pair':pair, 'count':numResults};
+    var start = new Date().getTime();
+    console.log(start);
     btce.trades(args, _.bind(function(err,trades) {
+
+        var hrTime = process.hrtime();
+
         if (!trades)
             return this.retry(this.getTrades, args);
 
@@ -57,6 +68,8 @@ exports.scrape = function (req, res) {
                     }
                     else{
                         console.log("Added successfully" + opts.id);
+                        var end = new Date().getTime();
+                        console.log(end);
                     }
                 });
 
@@ -64,6 +77,10 @@ exports.scrape = function (req, res) {
         );
 
     }, this));
+
+
+
+
 }
 
 var statsCron = new cronJob('* * * 60 * * * * *', function () {
